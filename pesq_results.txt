@@ -1,0 +1,2 @@
+REFERENCE	 DEGRADED	 PESQMOS	 MOSLQO	 SAMPLE_FREQ	 MODE
+origin.wav	 reconstruct.wav	 4.498	 4.547	 16000	nb
