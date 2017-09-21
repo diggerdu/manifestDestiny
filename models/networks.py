@@ -173,30 +173,33 @@ class AuFCN(nn.Module):
         fcn = None
 
         fcn = nn.Sequential(
-            OrderedDict([('conv1', nn.Conv2d(
-                12, 52, kernel_size=(5, 1), padding=1)), ('relu1', nn.ReLU(
-                    True)), ('maxpool', nn.MaxPool2d(3)), ('conv2', nn.Conv2d(
-                        52, 78, kernel_size=(5, 1), padding=0)), (
-                            'relu2', nn.ReLU(True)), ('fc1', nn.Conv2d(
-                                78, 1024, kernel_size=(38, 1))), (
-                                    'relu_after_linear1', nn.ReLU(True)),
-                         ('fc2', nn.Conv2d(1024, 1024, kernel_size=(1, 1))), (
-                             'relu_after_linear2', nn.ReLU(True)),
-                         ('fc3', nn.Conv2d(1024, 128, kernel_size=(1, 1)))]))
+            OrderedDict([('conv1', nn.Conv2d(12, 52, kernel_size=(5, 1), padding=1)),
+                        ('relu1', nn.LeakyReLU(0.1)),
+                        ('maxpool', nn.MaxPool2d(3)),
+                        ('conv2', nn.Conv2d(52, 78, kernel_size=(5, 1), padding=0)),
+                        ('relu2', nn.LeakyReLU(0.1)),
+                        ('fc1', nn.Conv2d(78, 1024, kernel_size=(38, 1))),
+                        ('relu_after_linear1', nn.LeakyReLU(0.1)),
+                        ('fc2', nn.Conv2d(1024, 1024, kernel_size=(1, 1))),
+                        ('relu_after_linear2', nn.LeakyReLU(0.1)),
+                        ('fc3', nn.Conv2d(1024, 128, kernel_size=(1, 1)))]))
         self.fcn = fcn
 
     def forward(self, sample):
         noisy_real, noisy_imag, ac = self.stft_model(sample)
         noisy_angle = torch.atan2(noisy_imag, noisy_real)
         noisy_power = (noisy_real.pow(2.) + noisy_imag.pow(2.)).pow(0.5)
+        noisy_power = noisy_power.permute(0, 3, 2, 1)
+
 
         IRM = self.fcn(noisy_power).permute(0, 2, 1, 3)
 
-        clean_power = IRM * noisy_power[:, 6:7, :, :]
-        clean_real = clean_power * torch.cos(noisy_angle[:, 6:7, :, :])
-        clean_imag = clean_power * torch.sin(noisy_angle[:, 6:7, :, :])
+        noisy_power = noisy_power.permute(0, 3, 2, 1)
+        clean_power = IRM * noisy_power[:, :, :, 6:7]
+        clean_real = clean_power * torch.cos(noisy_angle[:, :, :, 6:7])
+        clean_imag = clean_power * torch.sin(noisy_angle[:, :, :, 6:7])
         estimated_clean_frame = self.istft_model(clean_real, clean_imag,
-                                                 ac[:, 6:7, :])
+                                                 ac[:, :, 6:7])
         '''
 		#############DEBUG#############
 		power_debug = clean_power.data.cpu().numpy()
