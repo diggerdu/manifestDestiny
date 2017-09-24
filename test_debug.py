@@ -10,11 +10,34 @@ from pdb import set_trace as st
 from util import html
 
 
-
 # audio process
 import numpy as np
 import librosa
 import soundfile as sf
+
+
+def loadAudio(self, path, SR):
+    data, sr = sf.read(path)
+    try:
+        assert sr = SR
+    except AssertionError:
+        data = librosa.resample(data, sr, opt.SR)
+    return data - np.mean(data)
+
+def eval(cleanPath, noisePath, snr):
+    clean = loadAudio(cleanPath)
+    noise = loadAudio(noisePath)
+    noise = np.tile(noise, clean.shape[0] // noise.shape[0] + 1)[:clean.shape[0]]
+    noiseAmp = np.mean(np.square(clean)) / np.power(10, snr / 10.0)
+    scale = np.sqrt(noiseAmp / np.mean(np.square(noise)))
+    mix = clean + scale * noise
+
+
+
+
+
+
+
 
 opt = TestOptions().parse()
 opt.nThreads = 1   # test code only supports nThreads = 1
@@ -22,40 +45,6 @@ opt.batchSize = 1  # test code only supports batchSize = 1
 opt.serial_batches = True  # no shuffle
 opt.no_flip = True  # no flip
 
-data_loader = CreateDataLoader(opt)
-dataset = data_loader.load_data()
 model = create_model(opt)
-
-# test
-for i, data in enumerate(dataset):
-    if i >= opt.how_many:
-        break
-    model.set_input(data)
-    model.test()
-    audio = model.get_current_visuals()
-    img_path = model.get_image_paths()
-    print('process image... %s' % img_path)
-    clean_name = img_path[0].split('/')[-1][:15]
-    clean_amp = audio['clean'][0, 0, ::]
-    ratio = np.power(audio['ratio'][0, 0, ::], 2.0)
-
-    # cheat
-    ratio = ratio * (np.random.random((ratio.shape)) * 0.1 + 1)
-
-
-
-
-    est_ratio = np.power(audio['est_ratio'][0, 0, ::], 2.0)
-    noise_amp = audio['noise'][0, 0, ::]
-    denoise_amp = noise_amp * (1.0 - ratio)
-
-    noise_raw = recovery_phase(noise_amp, n_fft=opt.nfft, hop=opt.hop, iters=200)
-    sf.write('results/{}_noise.wav'.format(clean_name), noise_raw, opt.SR)
-    clean_raw = recovery_phase(clean_amp, n_fft=opt.nfft, hop=opt.hop)
-    sf.write('results/{}_clean.wav'.format(clean_name), clean_raw, opt.SR)
-    denoise_raw = recovery_phase(denoise_amp, n_fft=opt.nfft, hop=opt.hop)
-    sf.write('results/{}_denoise.wav'.format(clean_name), denoise_raw, opt.SR)
-
-
 
 
