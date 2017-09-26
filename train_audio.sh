@@ -11,5 +11,5 @@ python train_debug.py \
  --split_hop 0 \
  --niter 10000 --niter_decay 30 \
  --lr 0.001 \
- --gpu_ids 0
+ --gpu_ids 1
 #  --serial_batches

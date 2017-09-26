@@ -22,7 +22,9 @@ class Pix2PixModel(BaseModel):
         # define tensors self.Tensor has been reloaded
         self.input_A = self.Tensor(opt.batchSize, opt.len)
         self.input_B = self.Tensor(opt.batchSize, opt.nfft)
-        self.B_stft = tf.stft(nfft=256, hop_length=128).cuda()
+        if self.gpu_ids:
+            self.input_A.cuda(device=self.gpu_ids[0])
+            self.input_B.cuda(device=self.gpu_ids[0])
 
         # load/define networks
         self.netG = networks.define_G(opt.nfft, opt.hop, self.gpu_ids)
